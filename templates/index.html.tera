@@ -1,0 +1,26 @@
+<html>
+    <head>
+        <style>
+            .wrapper {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <img src="/images/{{imgname}}" width="600"/>
+        <div class="wrapper">
+            {% for class in classes %}
+            <form action="/" method="POST">
+                <input type="hidden" id="filename" name="filename" value="{{imgname}}">
+                <input type="hidden" id="tag" name="tag" value="{{class}}">
+                <input type="submit" value="{{class}}"/>
+            </form>
+            {% endfor %}
+        </div>
+        <div>
+        Files left: {{files_left}}
+        </div>
+    </body>
+</html>
