@@ -3,14 +3,13 @@
 #[macro_use]
 extern crate rocket;
 
-use clap::{App, Arg, SubCommand};
+use clap::{App, Arg};
 use log::*;
 use rand::Rng;
 use rocket::request::Form;
 use rocket::State;
 use rocket_contrib::serve::StaticFiles;
 use rocket_contrib::templates::Template;
-use std::io::Write;
 
 #[get("/hello/<name>/<age>")]
 fn hello(name: String, age: u8) -> String {
@@ -31,22 +30,7 @@ struct Config {
 }
 
 fn render_template(config: &Config) -> Template {
-    /*let tags = std::fs::read_dir("tags").unwrap();
-    let tags: Vec<_> = tags
-        .map(|entry| {
-            entry
-                .unwrap()
-                .path()
-                .file_name()
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .to_string()
-        })
-        .collect();*/
-    //let files = std::fs::read_dir("../stream-frames").unwrap();
     let files = std::fs::read_dir(&config.images).unwrap();
-    //let files = std::fs::read_dir("/home/lane/stream-ident/retrain").unwrap();
     let files: Vec<_> = files
         .map(|entry| {
             entry
@@ -65,16 +49,8 @@ fn render_template(config: &Config) -> Template {
     }
 
     let mut rng = rand::thread_rng();
-    let filename = loop {
-        let idx = rng.gen::<usize>() % files.len();
-        break &files[idx];
-        /*if !tags.contains(&files[idx]) {
-            break &files[idx];
-        }*/
-    };
-
-    //let classes: Vec<String> =
-    //serde_yaml::from_str(&std::fs::read_to_string("classes.yaml").unwrap()).unwrap();
+    let idx = rng.gen::<usize>() % files.len();
+    let filename = &files[idx];
 
     let context = TemplateContext {
         imgname: filename.clone(),
@@ -101,9 +77,8 @@ fn tag(tag: Form<TaggedLabel>, config: State<Config>) -> Template {
     std::fs::rename(
         format!("{}/{}", config.images, tag.filename),
         format!("{}/{}/{}", config.dataset, tag.tag, tag.filename),
-    );
-    //let mut f = std::fs::File::create(&format!("tags/{}", tag.filename)).unwrap();
-    //f.write_all(tag.tag.as_bytes()).unwrap();
+    )
+    .expect("Unable to move files!");
     render_template(&config)
 }
 
@@ -149,12 +124,6 @@ fn main() {
             .collect(),
     };
     println!("Found classes {:?}", classes);
-    /*let classes: Vec<_> = matches
-    .value_of("classes")
-    .unwrap()
-    .split(",")
-    .map(|s| s.to_string())
-    .collect();*/
 
     let config = Config {
         images: image_directory.to_string(),
@@ -164,11 +133,7 @@ fn main() {
 
     rocket::ignite()
         .mount("/", routes![hello, index, tag])
-        .mount(
-            "/images",
-            StaticFiles::from(image_directory),
-            //StaticFiles::from("/home/lane/stream-ident/retrain"),
-        )
+        .mount("/images", StaticFiles::from(image_directory))
         .attach(Template::fairing())
         .manage(config)
         .launch();
